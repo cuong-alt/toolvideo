@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Video (Dark Mode)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Chuyển sang nền tối */
+            background-color: #111827; /* bg-gray-900 */
+            color: #f9fafb; /* text-gray-50 */
+        }
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .drag-area {
+            /* Cập nhật màu cho dark mode */
+            border: 2px dashed #4b5563; /* border-gray-600 */
+            background-color: #374151; /* bg-gray-700 */
+            text-align: center;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .drag-area:hover {
+            background-color: #4b5563; /* bg-gray-600 */
+        }
+        .drag-area.drag-over {
+            border-color: #3b82f6; /* border-blue-500 */
+            background-color: #4b5563; /* bg-gray-600 */
+        }
+        /* Đảm bảo placeholder có màu sáng hơn trong dark mode */
+        ::placeholder {
+            color: #9ca3af; /* placeholder-gray-400 */
+            opacity: 1; 
+        }
+    </style>
+</head>
+<body class="bg-gray-900 flex flex-col">
+
+    <div class="bg-gray-800 p-4 md:p-8 w-full min-h-screen">
+        <!-- Cập nhật tên Tool -->
+        <h1 class="text-3xl font-bold text-center text-white mb-6">Tool Video (Bình Luận Viên Chuyên Nghiệp)</h1>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="hidden text-center text-blue-400 font-bold mb-4">Đang xử lý (Mode: Professional)...</div>
+
+        <!-- API Key Input Section (Auto-save) -->
+        <div class="mb-8">
+            <label for="apiKeyInput" class="block text-gray-200 font-semibold mb-2">Nhập API Key của Gemini (Tự động lưu):</label>
+            <div class="flex items-center">
+                <input type="password" id="apiKeyInput" class="w-full p-2 rounded-lg border-2 bg-gray-700 text-white border-gray-600 focus:outline-none focus:border-blue-400 transition-colors" placeholder="Dán API Key của bạn vào đây...">
+                <button id="getApiKeyBtn" class="ml-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full transition-colors focus:outline-none focus:ring-4 focus:ring-blue-300 whitespace-nowrap">
+                    Lấy API Key
+                </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-1 italic">* Key sẽ được lưu tự động vào trình duyệt của bạn.</p>
+        </div>
+        
+        <!-- Tab Buttons -->
+        <div class="flex border-b border-gray-600 mb-6 overflow-x-auto">
+            <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 active whitespace-nowrap" data-tab="title-rewrite">Viết lại tiêu đề</button>
+            <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="subtitle">Tải phụ đề</button>
+            <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="rewrite">Viết lại kịch bản</button>
+            <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="thumbnail">Get thuml</button>
+            <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="info">Thông tin video</button>
+        </div>
+
+        <!-- Tab Content -->
+
+        <!-- Tab 1: Viết lại tiêu đề -->
+        <div id="tab-title-rewrite" class="tab-content active">
+            <p class="text-center text-gray-400 mb-4">
+                Hệ thống sẽ tự động phân tích, đánh giá 5 phương án và chọn ra <b>1 tiêu đề xuất sắc nhất</b>.
+            </p>
+            <div class="mb-6">
+                <label for="originalTitleInput" class="block text-gray-200 font-semibold mb-2">Tiêu đề gốc:</label>
+                <input type="text" id="originalTitleInput" class="w-full p-2 rounded-lg border-2 bg-gray-700 text-white border-gray-600 focus:outline-none focus:border-blue-400 transition-colors" placeholder="Dán tiêu đề gốc của video vào đây.">
+            </div>
+            <div class="flex justify-center mb-6">
+                <button id="rewriteTitleBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                    Tạo tiêu đề tốt nhất
+                </button>
+            </div>
+            <div class="mt-4">
+                <label for="titleOutput" class="block text-gray-200 font-semibold mb-2">Kết quả (1 Tiêu đề được chọn):</label>
+                <div class="flex items-center">
+                    <!-- Giảm chiều cao textarea vì chỉ hiện 1 dòng -->
+                    <textarea id="titleOutput" class="w-full h-32 p-4 rounded-lg border-2 border-gray-600 bg-gray-700 text-white resize-none" readonly></textarea>
+                    <button id="copyTitleBtn" class="ml-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full shadow transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 whitespace-nowrap">
+                        Sao chép
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Tải phụ đề -->
+        <div id="tab-subtitle" class="tab-content">
+            <p class="text-center text-gray-400 mb-4">
+                Nhập đường link video để tải phụ đề từ downsub.com.
+            </p>
+            <div class="mb-6">
+                <label for="videoUrlInput" class="block text-gray-200 font-semibold mb-2">Đường link video:</label>
+                <input type="text" id="videoUrlInput" class="w-full p-2 rounded-lg border-2 bg-gray-700 text-white border-gray-600 focus:outline-none focus:border-blue-400 transition-colors" placeholder="Dán URL video (ví dụ: YouTube link)">
+            </div>
+            <div class="flex justify-center mb-6">
+                <button id="downloadSubtitleBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300">
+                    Tải phụ đề
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab 3: Viết lại kịch bản -->
+        <div id="tab-rewrite" class="tab-content">
+            <p class="text-center text-gray-400 mb-4">
+                Chế độ chuyên gia: Tự động viết lại theo phong cách <b>Bình luận viên chuyên nghiệp</b>.
+                <br><span class="text-sm text-blue-400">*Đã cập nhật: Lịch sự, sâu sắc, có Hook & 5 điểm ngắt quảng cáo.</span>
+            </p>
+            <div class="mb-6">
+                <label for="rewriteOriginalScriptInput" class="block text-gray-200 font-semibold mb-2">Kịch bản gốc:</label>
+                <textarea id="rewriteOriginalScriptInput" class="w-full h-64 p-4 rounded-lg border-2 bg-gray-700 text-white border-gray-600 focus:outline-none focus:border-blue-400 transition-colors" placeholder="Dán kịch bản gốc từ video vào đây. Tool sẽ tự động áp dụng phong cách chuyên gia."></textarea>
+                <div id="rewriteDragArea" class="drag-area mt-2 rounded-lg text-gray-400">
+                    <p>Kéo và thả file .txt vào đây</p>
+                </div>
+            </div>
+            <div class="flex justify-center mb-6">
+                <button id="rewriteBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                    Viết lại kịch bản (Mode: Professional)
+                </button>
+            </div>
+            <div class="mt-4">
+                <label for="rewriteOutput" class="block text-gray-200 font-semibold mb-2">Kết quả:</label>
+                <div class="flex items-center">
+                    <textarea id="rewriteOutput" class="w-full h-64 p-4 rounded-lg border-2 border-gray-600 bg-gray-700 text-white resize-none" readonly></textarea>
+                    <button id="copyRewriteBtn" class="ml-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full shadow transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 whitespace-nowrap">
+                        Sao chép
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Get thuml -->
+        <div id="tab-thumbnail" class="tab-content">
+            <p class="text-center text-gray-400 mb-4">
+                Nhập đường link video để lấy ảnh Thumbnail từ get-youtube-thumbnail.com.
+            </p>
+            <div class="mb-6">
+                <label for="thumbnailVideoInput" class="block text-gray-200 font-semibold mb-2">Đường link video:</label>
+                <input type="text" id="thumbnailVideoInput" class="w-full p-2 rounded-lg border-2 bg-gray-700 text-white border-gray-600 focus:outline-none focus:border-blue-400 transition-colors" placeholder="Dán URL video YouTube vào đây">
+            </div>
+            <div class="flex justify-center mb-6">
+                <button id="getThumbnailBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300">
+                    GET THUML
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab 5: Thông tin video -->
+        <div id="tab-info" class="tab-content">
+            <p class="text-center text-gray-400 mb-4">
+                Mô tả và từ khóa sẽ được tạo ra từ kịch bản đã được xử lý.
+            </p>
+            <div class="mb-6">
+                <label for="descriptionOutput" class="block text-gray-200 font-semibold mb-2">Mô tả video:</label>
+                <div class="flex items-center">
+                    <textarea id="descriptionOutput" class="w-full h-40 p-4 rounded-lg border-2 border-gray-600 bg-gray-700 text-white resize-none" readonly placeholder="Mô tả video sẽ xuất hiện ở đây."></textarea>
+                    <button id="copyDescriptionBtn" class="ml-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full shadow transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 whitespace-nowrap">
+                        Sao chép
+                    </button>
+                </div>
+            </div>
+            <div class="mb-6">
+                <label for="keywordsOutput" class="block text-gray-200 font-semibold mb-2">Từ khóa (Keywords):</label>
+                <div class="flex items-center">
+                    <textarea id="keywordsOutput" class="w-full h-20 p-4 rounded-lg border-2 border-gray-600 bg-gray-700 text-white resize-none" readonly placeholder="Từ khóa sẽ xuất hiện ở đây."></textarea>
+                    <button id="copyKeywordsBtn" class="ml-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full shadow transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 whitespace-nowrap">
+                        Sao chép
+                    </button>
+                </div>
+            </div>
+            <div class="flex justify-center mb-6">
+                <button id="generateInfoBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                    Tạo thông tin video
+                </button>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        window.onload = function() {
+            // --- DOM Elements ---
+            const rewriteOriginalScriptInput = document.getElementById('rewriteOriginalScriptInput');
+            const rewriteOutput = document.getElementById('rewriteOutput');
+            const rewriteBtn = document.getElementById('rewriteBtn');
+            const rewriteTitleBtn = document.getElementById('rewriteTitleBtn');
+            const generateInfoBtn = document.getElementById('generateInfoBtn');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            const getApiKeyBtn = document.getElementById('getApiKeyBtn');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const rewriteDragArea = document.getElementById('rewriteDragArea');
+            const originalTitleInput = document.getElementById('originalTitleInput');
+            const descriptionOutput = document.getElementById('descriptionOutput');
+            const keywordsOutput = document.getElementById('keywordsOutput');
+            const titleOutput = document.getElementById('titleOutput');
+            const copyTitleBtn = document.getElementById('copyTitleBtn');
+            const copyRewriteBtn = document.getElementById('copyRewriteBtn');
+            const copyDescriptionBtn = document.getElementById('copyDescriptionBtn');
+            const copyKeywordsBtn = document.getElementById('copyKeywordsBtn');
+            const videoUrlInput = document.getElementById('videoUrlInput');
+            const downloadSubtitleBtn = document.getElementById('downloadSubtitleBtn');
+            
+            // New Elements for Thumbnail
+            const thumbnailVideoInput = document.getElementById('thumbnailVideoInput');
+            const getThumbnailBtn = document.getElementById('getThumbnailBtn');
+
+            // --- State Management ---
+            let outputValues = {
+                rewrite: '',
+                description: '',
+                keywords: '',
+                title: ''
+            };
+
+            let geminiApiKey = '';
+
+            // --- API Key Logic (Auto Save) ---
+            const storedApiKey = localStorage.getItem('geminiApiKey');
+            if (storedApiKey) {
+                geminiApiKey = storedApiKey;
+                apiKeyInput.value = storedApiKey;
+            }
+
+            apiKeyInput.addEventListener('input', (e) => {
+                geminiApiKey = e.target.value.trim();
+                localStorage.setItem('geminiApiKey', geminiApiKey);
+            });
+
+            getApiKeyBtn.addEventListener('click', () => {
+                window.open('https://aistudio.google.com/app/apikey?hl=vi', '_blank');
+            });
+
+
+            // --- Tab Functionality ---
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tab = button.dataset.tab;
+                    
+                    const activeTab = document.querySelector('.tab-content.active');
+                    if (activeTab) {
+                        const activeTabId = activeTab.id;
+                        if (activeTabId === 'tab-rewrite') {
+                            outputValues.rewrite = rewriteOutput.value;
+                        } else if (activeTabId === 'tab-info') {
+                            outputValues.description = descriptionOutput.value;
+                            outputValues.keywords = keywordsOutput.value;
+                        } else if (activeTabId === 'tab-title-rewrite') {
+                            outputValues.title = titleOutput.value;
+                        }
+                    }
+
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    button.classList.add('active');
+                    document.getElementById(`tab-${tab}`).classList.add('active');
+
+                    // Restore values
+                    if (tab === 'rewrite') {
+                        rewriteOutput.value = outputValues.rewrite;
+                    } else if (tab === 'info') {
+                        descriptionOutput.value = outputValues.description;
+                        keywordsOutput.value = outputValues.keywords;
+                    } else if (tab === 'title-rewrite') {
+                        titleOutput.value = outputValues.title;
+                    }
+                });
+            });
+
+            // --- Drag and Drop ---
+            function handleFileDrop(textarea, dragArea) {
+                if (textarea && dragArea) {
+                    dragArea.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        dragArea.classList.add('drag-over');
+                    });
+                    dragArea.addEventListener('dragleave', () => {
+                        dragArea.classList.remove('drag-over');
+                    });
+                    dragArea.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        dragArea.classList.remove('drag-over');
+                        const file = e.dataTransfer.files[0];
+                        if (file && file.type === 'text/plain') {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                textarea.value = event.target.result;
+                            };
+                            reader.readAsText(file);
+                        } else {
+                            alert('Vui lòng chỉ kéo và thả file .txt.');
+                        }
+                    });
+                }
+            }
+            handleFileDrop(rewriteOriginalScriptInput, rewriteDragArea);
+
+            // --- Feature: Get Thumbnail ---
+            if (getThumbnailBtn) {
+                getThumbnailBtn.addEventListener('click', () => {
+                    const url = thumbnailVideoInput.value.trim();
+                    if (!url) {
+                        alert("Vui lòng nhập đường link video.");
+                        return;
+                    }
+
+                    // 1. Copy URL to clipboard
+                    const tempTextarea = document.createElement('textarea');
+                    tempTextarea.value = url;
+                    document.body.appendChild(tempTextarea);
+                    tempTextarea.select();
+                    try {
+                        document.execCommand('copy');
+                    } catch (e) {
+                        console.error("Copy failed", e);
+                    }
+                    document.body.removeChild(tempTextarea);
+
+                    // 2. Open new tab
+                    const targetUrl = 'http://www.get-youtube-thumbnail.com/?url=' + encodeURIComponent(url);
+                    window.open(targetUrl, '_blank');
+                });
+            }
+
+            // --- Feature: Download Subtitle ---
+            if (downloadSubtitleBtn) {
+                downloadSubtitleBtn.addEventListener('click', () => {
+                    const videoUrl = videoUrlInput.value.trim();
+                    if (!videoUrl) {
+                        alert('Vui lòng nhập đường link video.');
+                        return;
+                    }
+                    const downsubUrl = 'https://downsub.com/?url=' + encodeURIComponent(videoUrl);
+                    window.open(downsubUrl, '_blank');
+                });
+            }
+
+            // --- AI Logic: Rewrite Title (UPDATED PROMPT v3 - Single Best Choice) ---
+            async function processRewriteTitle() {
+                const originalTitle = originalTitleInput.value.trim();
+                if (!originalTitle) {
+                    alert("Vui lòng dán tiêu đề gốc.");
+                    return;
+                }
+
+                if (!geminiApiKey) {
+                    alert("Vui lòng nhập API Key của Gemini.");
+                    return;
+                }
+
+                rewriteTitleBtn.disabled = true;
+                rewriteTitleBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                loadingIndicator.classList.remove('hidden');
+                titleOutput.value = "";
+
+                try {
+                    // Updated Prompt: Force analysis and single output selection
+                    const prompt = `MISSION
+                    Act as an expert Japanese YouTube Copywriter specializing in Professional Baseball (NPB/MLB).
+                    Your goal is to determine the SINGLE BEST YouTube Title for the provided "Original Title", targeting Japanese men aged 40-60.
+
+                    PROCESS (Internal Monologue - Do Not Output):
+                    1. Generate 5 variations ranging from "Mildly Clickbaity" to "Shocking/Controversial".
+                    2. Apply rules: Showa era "Guts" & "Logic" tone, Izakaya style.
+                    3. Evaluate which one has the strongest Psychological Hook (Conflict, Scarcity, Authority, Nostalgia).
+                    4. Select the absolute winner.
+
+                    STRICT OUTPUT CONSTRAINTS:
+                    1. Output ONLY the single best title.
+                    2. NO explanations, NO numbering, NO markdown (no * or #).
+                    3. PRESERVE CONTEXT: Retain names and stats.
+                    4. FORMAT: 【Effective Hook】 + Detailed Body Text.
+
+                    INPUT TITLE:
+                    ${originalTitle}
+
+                    FINAL OUTPUT:
+                    (Only the one best title string)`;
+
+                    const chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+
+                    let response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(`API Error`);
+
+                    const rewrittenTitle = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    titleOutput.value = rewrittenTitle || "Lỗi không xác định.";
+                    outputValues.title = titleOutput.value;
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    titleOutput.value = "Đã xảy ra lỗi khi kết nối với AI.";
+                } finally {
+                    rewriteTitleBtn.disabled = false;
+                    rewriteTitleBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
+
+            // --- AI Logic: Rewrite Script (UPDATED PROMPT v4 - PROFESSIONAL COMMENTATOR) ---
+            async function processRewriteScript() {
+                const originalScript = rewriteOriginalScriptInput.value.trim();
+                
+                if (!originalScript) {
+                    alert("Vui lòng dán kịch bản gốc.");
+                    return;
+                }
+
+                if (!geminiApiKey) {
+                    alert("Vui lòng nhập API Key.");
+                    return;
+                }
+                
+                rewriteBtn.disabled = true;
+                rewriteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                loadingIndicator.classList.remove('hidden');
+                rewriteOutput.value = "";
+
+                try {
+                    const rewritePrompt = `CORE MISSION
+                    Act as a Professional Japanese Baseball Commentator (Professional Analyst/OB).
+                    Rewrite the "Original Script" into a high-quality, broadcast-style YouTube script for men aged 40-60.
+
+                    STRUCTURE & AD BREAKS (CRITICAL):
+                    1. **HOOK (0:00-0:30)**: Start with a professional yet gripping intro. Present a key analysis or a burning question with authority.
+                    2. **AD BREAKS (5 SPOTS)**: Split the script into segments. Insert exactly 5 Ad Break points at high-tension moments.
+                       - Format: 【Short & Impactful Headline】 (max 20 chars).
+                       - Example: 【名将が隠した真実とは】
+
+                    CRITICAL LENGTH REQUIREMENT:
+                    - DO NOT SHORTEN THE SCRIPT.
+                    - EXPAND using professional insight, historical context, and "Showa-era" baseball values (Guts, Logic).
+                    - The output MUST be equal to or longer than the original.
+
+                    PERSONA & TONE (UPDATED):
+                    - **Role:** Experienced Sports Commentator / respected Baseball OB.
+                    - **Tone:** Polite (Desu/Masu), Articulate, Passionate, Authoritative. NOT slangy or rude.
+                    - **Style:** Think of NHK special analysis or "Pro Yakyuu News" legends. Dignified but deeply engaging.
+                    - **Vocabulary:** Use professional terms: "Kire", "Nobi", "Seikyuu", "Haisen Shori", "ID Yakyuu".
+
+                    OUTPUT FORMAT RULES:
+                    1. NO TITLE at the start.
+                    2. NO Markdown formatting. Plain text only.
+
+                    INPUT SCRIPT:
+                    ${originalScript}`;
+
+                    const rewriteChatHistory = [];
+                    rewriteChatHistory.push({ role: "user", parts: [{ text: rewritePrompt }] });
+                    const rewritePayload = { contents: rewriteChatHistory };
+
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+
+                    let response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(rewritePayload)
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(`API Error`);
+
+                    const rewrittenScript = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    rewriteOutput.value = rewrittenScript || "Lỗi không xác định";
+                    outputValues.rewrite = rewriteOutput.value;
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    rewriteOutput.value = "Đã xảy ra lỗi khi kết nối với AI.";
+                } finally {
+                    rewriteBtn.disabled = false;
+                    rewriteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
+
+            // --- AI Logic: Generate Info ---
+            async function generateVideoInfo() {
+                let scriptToUse = outputValues.rewrite || rewriteOriginalScriptInput.value.trim();
+
+                if (!scriptToUse) {
+                    alert("Vui lòng xử lý kịch bản ở tab Viết lại kịch bản trước hoặc nhập kịch bản gốc.");
+                    return;
+                }
+                if (!geminiApiKey) {
+                    alert("Vui lòng nhập API Key.");
+                    return;
+                }
+
+                const infoPrompt = `Based on the following script, create a video description of about 150-200 words and 15 related keywords, all in Japanese.
+                
+                Original script:
+                ${scriptToUse}
+
+                Return the result in JSON format with the following structure:
+                {
+                    "description": "Detailed video description...",
+                    "keywords": ["keyword 1", "keyword 2", ...]
+                }`;
+
+                loadingIndicator.classList.remove('hidden');
+                
+                try {
+                    const chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: infoPrompt }] });
+                    const payload = {
+                        contents: chatHistory,
+                        generationConfig: { responseMimeType: "application/json" }
+                    };
+                    
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+
+                    let response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(`API Error`);
+
+                    const json = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    const parsedJson = JSON.parse(json);
+                    descriptionOutput.value = parsedJson.description;
+                    keywordsOutput.value = parsedJson.keywords.join(', ');
+                    outputValues.description = parsedJson.description;
+                    outputValues.keywords = parsedJson.keywords.join(', ');
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    descriptionOutput.value = "Lỗi tạo thông tin.";
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
+
+            // --- Helper: Copy to Clipboard ---
+            function copyToClipboard(element) {
+                const text = element ? element.value : '';
+                if (text) {
+                    const tempTextarea = document.createElement('textarea');
+                    tempTextarea.value = text;
+                    document.body.appendChild(tempTextarea);
+                    tempTextarea.select();
+                    try {
+                        document.execCommand('copy');
+                        alert('Đã sao chép vào clipboard!');
+                    } catch (err) {
+                        console.error('Could not copy text: ', err);
+                        alert('Không thể sao chép văn bản.');
+                    }
+                    document.body.removeChild(tempTextarea);
+                } else {
+                    alert('Không có văn bản để sao chép.');
+                }
+            }
+
+            // --- Event Listeners ---
+            if (rewriteBtn) rewriteBtn.addEventListener('click', processRewriteScript);
+            if (generateInfoBtn) generateInfoBtn.addEventListener('click', generateVideoInfo);
+            if (rewriteTitleBtn) rewriteTitleBtn.addEventListener('click', processRewriteTitle);
+
+            if (copyRewriteBtn) copyRewriteBtn.addEventListener('click', () => copyToClipboard(rewriteOutput));
+            if (copyDescriptionBtn) copyDescriptionBtn.addEventListener('click', () => copyToClipboard(descriptionOutput));
+            if (copyKeywordsBtn) copyKeywordsBtn.addEventListener('click', () => copyToClipboard(keywordsOutput));
+            if (copyTitleBtn) copyTitleBtn.addEventListener('click', () => copyToClipboard(titleOutput));
+        };
+    </script>
+</body>
+</html>
