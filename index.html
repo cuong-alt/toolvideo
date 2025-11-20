@@ -79,6 +79,7 @@
             <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 active whitespace-nowrap" data-tab="title-rewrite">Viết lại tiêu đề</button>
             <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="subtitle">Tải phụ đề</button>
             <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="rewrite">Viết lại kịch bản</button>
+            <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="add-character">Thêm tên nhân vật</button> <!-- Tab mới -->
             <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="thumbnail">Get Thumbnail & Analyze</button>
             <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="info">Thông tin video</button>
         </div>
@@ -149,6 +150,35 @@
                 <div class="flex items-center">
                     <textarea id="rewriteOutput" class="w-full h-64 p-4 rounded-lg border-2 border-gray-600 bg-gray-700 text-white resize-none" readonly></textarea>
                     <button id="copyRewriteBtn" class="ml-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full shadow transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 whitespace-nowrap">
+                        Sao chép
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab MỚI: Thêm tên nhân vật -->
+        <div id="tab-add-character" class="tab-content">
+            <p class="text-center text-gray-400 mb-4">
+                Tự động thêm tên nhân vật và định dạng dấu ngoặc kép cho phụ đề.
+            </p>
+            <div class="mb-6">
+                <label for="charNameInput" class="block text-gray-200 font-semibold mb-2">Tên nhân vật:</label>
+                <input type="text" id="charNameInput" class="w-1/4 p-2 rounded-lg border-2 bg-gray-700 text-white border-gray-600 focus:outline-none focus:border-blue-400 transition-colors" placeholder="Ví dụ: T1">
+            </div>
+            <div class="mb-6">
+                <label for="subtitleScriptInput" class="block text-gray-200 font-semibold mb-2">Nội dung phụ đề (đã chia dòng):</label>
+                <textarea id="subtitleScriptInput" class="w-full h-64 p-4 rounded-lg border-2 bg-gray-700 text-white border-gray-600 focus:outline-none focus:border-blue-400 transition-colors" placeholder="Dán nội dung phụ đề vào đây..."></textarea>
+            </div>
+            <div class="flex justify-center mb-6">
+                <button id="processCharNameBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                    Thêm tên nhân vật
+                </button>
+            </div>
+            <div class="mt-4">
+                <label for="subtitleScriptOutput" class="block text-gray-200 font-semibold mb-2">Kết quả:</label>
+                <div class="flex items-center">
+                    <textarea id="subtitleScriptOutput" class="w-full h-64 p-4 rounded-lg border-2 border-gray-600 bg-gray-700 text-white resize-none" readonly></textarea>
+                    <button id="copyCharScriptBtn" class="ml-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full shadow transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 whitespace-nowrap">
                         Sao chép
                     </button>
                 </div>
@@ -265,6 +295,13 @@
             const videoUrlInput = document.getElementById('videoUrlInput');
             const downloadSubtitleBtn = document.getElementById('downloadSubtitleBtn');
             
+            // Add Character Elements
+            const charNameInput = document.getElementById('charNameInput');
+            const subtitleScriptInput = document.getElementById('subtitleScriptInput');
+            const subtitleScriptOutput = document.getElementById('subtitleScriptOutput');
+            const processCharNameBtn = document.getElementById('processCharNameBtn');
+            const copyCharScriptBtn = document.getElementById('copyCharScriptBtn');
+            
             // Thumbnail & Analysis Elements
             const thumbnailVideoInput = document.getElementById('thumbnailVideoInput');
             const getThumbnailBtn = document.getElementById('getThumbnailBtn');
@@ -284,7 +321,8 @@
                 keywords: '',
                 title: '',
                 ocr: '',
-                character: ''
+                character: '',
+                charScript: ''
             };
             
             let geminiApiKey = '';
@@ -324,6 +362,8 @@
                         } else if (activeTabId === 'tab-thumbnail') {
                             outputValues.ocr = ocrOutput.value;
                             outputValues.character = characterOutput.value;
+                        } else if (activeTabId === 'tab-add-character') {
+                            outputValues.charScript = subtitleScriptOutput.value;
                         }
                     }
 
@@ -344,6 +384,8 @@
                     } else if (tab === 'thumbnail') {
                         ocrOutput.value = outputValues.ocr;
                         characterOutput.value = outputValues.character;
+                    } else if (tab === 'add-character') {
+                        subtitleScriptOutput.value = outputValues.charScript;
                     }
                 });
             });
@@ -375,6 +417,52 @@
                 }
             }
             handleFileDrop(rewriteOriginalScriptInput, rewriteDragArea);
+
+            // --- Feature: Add Character Name ---
+            if (processCharNameBtn) {
+                processCharNameBtn.addEventListener('click', () => {
+                    const charName = charNameInput.value.trim();
+                    const rawScript = subtitleScriptInput.value;
+
+                    if (!charName) {
+                        alert("Vui lòng nhập tên nhân vật.");
+                        return;
+                    }
+                    if (!rawScript) {
+                        alert("Vui lòng nhập nội dung phụ đề.");
+                        return;
+                    }
+
+                    // Split by one or more blank lines to identify blocks
+                    // Using RegEx to capture double newlines as separator
+                    const blocks = rawScript.split(/\n\s*\n/);
+                    
+                    const processedBlocks = blocks.map(block => {
+                        // Trim whitespace from the block
+                        const trimmedBlock = block.trim();
+                        if (!trimmedBlock) return ''; // Skip empty blocks
+
+                        const lines = trimmedBlock.split('\n');
+                        // Clean up potential whitespace on each line
+                        const cleanLines = lines.map(l => l.trim());
+                        
+                        if (cleanLines.length === 1) {
+                            // Single line case
+                            return `${charName},${cleanLines[0]}`;
+                        } else if (cleanLines.length >= 2) {
+                            // Multi line case (add quotes)
+                            // Format: Name,"Line1 \n Line2"
+                            return `${charName},"${cleanLines.join('\n')}"`;
+                        }
+                        return '';
+                    });
+
+                    // Filter out empty strings and join with double newlines
+                    const result = processedBlocks.filter(b => b !== '').join('\n\n');
+                    subtitleScriptOutput.value = result;
+                    outputValues.charScript = result;
+                });
+            }
 
             // --- Feature: Get Thumbnail & AUTO Analyze ---
             if (getThumbnailBtn) {
@@ -743,6 +831,7 @@
             if (copyTitleBtn) copyTitleBtn.addEventListener('click', () => copyToClipboard(titleOutput));
             if (copyOcrBtn) copyOcrBtn.addEventListener('click', () => copyToClipboard(ocrOutput));
             if (copyCharacterBtn) copyCharacterBtn.addEventListener('click', () => copyToClipboard(characterOutput));
+            if (copyCharScriptBtn) copyCharScriptBtn.addEventListener('click', () => copyToClipboard(subtitleScriptOutput));
         };
     </script>
 </body>
