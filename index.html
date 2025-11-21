@@ -79,7 +79,7 @@
             <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 active whitespace-nowrap" data-tab="title-rewrite">Viết lại tiêu đề</button>
             <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="subtitle">Tải phụ đề</button>
             <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="rewrite">Viết lại kịch bản</button>
-            <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="add-character">Thêm tên nhân vật</button> <!-- Tab mới -->
+            <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="add-character">Thêm tên nhân vật</button>
             <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="thumbnail">Get Thumbnail & Analyze</button>
             <button class="tab-button py-2 px-4 text-gray-400 hover:text-white font-medium rounded-t-lg transition-colors duration-200 whitespace-nowrap" data-tab="info">Thông tin video</button>
         </div>
@@ -529,12 +529,14 @@
                     - Do NOT add punctuation (periods, commas) if they are not in the image.
                     - Do NOT add markdown or intro text. Just the raw text from the image.
 
-                    Task 2: Identify the person/character in the image. If it is a famous Baseball player (NPB/MLB), provide their full name in Japanese (Kanji/Katakana).
+                    Task 2: Identify ALL persons/characters in the image. 
+                    - If they are famous Baseball players (NPB/MLB) or known public figures, provide their full names in Japanese (Kanji/Katakana).
+                    - List ALL identified characters separated by commas.
 
                     Output strictly in JSON format:
                     {
                         "extracted_text": "Raw text string with newlines...",
-                        "character_name": "Name of the character(s)..."
+                        "character_name": "Character 1, Character 2, Character 3..."
                     }`;
 
                     const payload = {
